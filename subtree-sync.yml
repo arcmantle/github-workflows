@@ -1,0 +1,49 @@
+name: Subtree Sync
+
+on:
+  workflow_call:
+    inputs:
+      package-path:
+        description: 'Path to the package folder (e.g., packages/lit-jsx)'
+        required: true
+        type: string
+      target-repo:
+        description: 'Target repository (e.g., arcmantle/jsx-lit)'
+        required: true
+        type: string
+      target-branch:
+        description: 'Target branch name'
+        required: false
+        type: string
+        default: main
+    secrets:
+      sync-token:
+        description: 'Personal access token with repo permissions'
+        required: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.sync-token }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add remote repository
+        run: |
+          git remote add target-repo https://x-access-token:${{ secrets.sync-token }}@github.com/${{ inputs.target-repo }}.git
+
+      - name: Push subtree to standalone repo
+        run: |
+          git subtree push --prefix=${{ inputs.package-path }} target-repo ${{ inputs.target-branch }}
+
+      - name: Success notification
+        run: |
+          echo "✅ Successfully synced ${{ inputs.package-path }} to ${{ inputs.target-repo }}"
