@@ -1,10 +1,27 @@
 name: Pnpm Publish
 
 on:
-  push:
-    branches: ["main"]
-
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      version-increment:
+        description: 'Version increment type (patch, minor, major, prerelease)'
+        required: false
+        default: 'patch'
+        type: string
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '24'
+        type: string
+      access:
+        description: 'Package access level (public, restricted)'
+        required: false
+        default: 'public'
+        type: string
+    secrets:
+      NPM_PUBLISH:
+        description: 'NPM publish token'
+        required: true
 
 jobs:
   publish-npm:
@@ -13,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ inputs.node-version }}
           registry-url: https://registry.npmjs.org/
 
       - name: Setup pnpm
@@ -25,6 +42,6 @@ jobs:
         run: pnpm install
 
       - name: Publish package.
-        run: pnpm publish --access public --no-git-checks
+        run: pnpm publish --${{ inputs.version-increment }} --access ${{ inputs.access }} --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_PUBLISH}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH }}
