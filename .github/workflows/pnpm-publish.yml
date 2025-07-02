@@ -41,6 +41,9 @@ jobs:
       - name: Install dependencies.
         run: pnpm install
 
+      - name: Build project.
+        run: pnpm build
+
       - name: Get package name and current published version
         id: package-info
         run: |
