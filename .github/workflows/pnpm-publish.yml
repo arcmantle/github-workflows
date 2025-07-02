@@ -70,14 +70,7 @@ jobs:
             echo "is-first-publish=true" >> $GITHUB_OUTPUT
             echo "✅ New package, will set to 1.0.0"
           fi
-          echo "is first publish ???? ${{ steps.package-info.outputs.is-first-publish }}"
-
-      - name: Set package version to current published version
-        if: steps.package-info.outputs.is-first-publish != 'true'
-        run: |
-          echo "is first publish ???? ${{ steps.package-info.outputs.is-first-publish }}"
-          echo "📝 Setting package.json version to current published version: ${{ steps.package-info.outputs.current-version }}"
-          npm version ${{ steps.package-info.outputs.current-version }} --no-git-tag-version
+          echo "is first publish ???? is-first-publish"
 
       - name: Bump version
         id: bump-version
