@@ -38,6 +38,9 @@ jobs:
         with:
           version: latest
 
+      - name: Install rimraf used by build step.
+        run: pnpm add -g rimraf
+
       - name: Install dependencies.
         run: pnpm install
 
