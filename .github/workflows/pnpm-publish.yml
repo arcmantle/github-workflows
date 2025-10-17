@@ -56,7 +56,6 @@ jobs:
       - name: Update dependencies
         if: ${{ inputs.dependency-map != '{}' }}
         run: |
-          echo "Dependency map: ${{ inputs.dependency-map }}"
           node -e "
             const depsMap = JSON.parse(process.env.DEP_MAP);
             const fs = require('fs');
@@ -145,8 +144,8 @@ jobs:
             echo "✅ First release version: 1.0.0"
           fi
 
-      #- name: Publish to NPM
-      #  run: pnpm publish --access ${{ inputs.access }} --no-git-checks
-      #  env:
-      #    NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH }}
-      #    NPM_TOKEN: ${{ secrets.NPM_PUBLISH }}
+      - name: Publish to NPM
+        run: pnpm publish --access ${{ inputs.access }} --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH }}
+          NPM_TOKEN: ${{ secrets.NPM_PUBLISH }}
