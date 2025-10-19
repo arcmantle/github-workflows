@@ -5,8 +5,12 @@ on:
     inputs:
       matrix:
         description: >
-          JSON array of objects, each containing "targetRepo" (format: "owner/repo") and "packagePath" fields.
-          Example: [{"targetRepo": "owner/repo1", "packagePath": "packages/foo"}, {"targetRepo": "owner/repo2", "packagePath": "packages/bar"}]
+          JSON array of objects, each containing
+          "targetRepo" (format: "owner/repo") and "packagePath" fields.
+          Example: [
+            {"targetRepo": "owner/repo1", "packagePath": "packages/foo"},
+            {"targetRepo": "owner/repo2", "packagePath": "packages/bar"}
+          ]
         required: true
         type: string
       target-branch:
