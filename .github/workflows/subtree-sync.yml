@@ -3,12 +3,10 @@ name: Subtree Sync
 on:
   workflow_call:
     inputs:
-      package-path:
-        description: 'Path to the package folder (e.g., packages/lit-jsx)'
-        required: true
-        type: string
-      target-repo:
-        description: 'Target repository (e.g., arcmantle/jsx-lit)'
+      matrix:
+        description: >
+          JSON array of objects, each containing "targetRepo" (format: "owner/repo") and "packagePath" fields.
+          Example: [{"targetRepo": "owner/repo1", "packagePath": "packages/foo"}, {"targetRepo": "owner/repo2", "packagePath": "packages/bar"}]
         required: true
         type: string
       target-branch:
@@ -24,6 +22,9 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJson(inputs.matrix) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,12 +39,12 @@ jobs:
 
       - name: Add remote repository
         run: |
-          git remote add target-repo https://x-access-token:${{ secrets.sync-token }}@github.com/${{ inputs.target-repo }}.git
+          git remote add target-repo https://x-access-token:${{ secrets.sync-token }}@github.com/${{ matrix.targetRepo }}.git
 
       - name: Push subtree to standalone repo
         run: |
-          git subtree push --prefix=${{ inputs.package-path }} target-repo ${{ inputs.target-branch }}
+          git subtree push --prefix=${{ matrix.packagePath }} target-repo ${{ inputs.target-branch }}
 
       - name: Success notification
         run: |
-          echo "✅ Successfully synced ${{ inputs.package-path }} to ${{ inputs.target-repo }}"
+          echo "✅ Successfully synced ${{ matrix.packagePath }} to ${{ matrix.targetRepo }}"
