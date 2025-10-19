@@ -1,4 +1,4 @@
-name: Sync subtrees
+name: Push subtrees
 
 on:
   workflow_call:
