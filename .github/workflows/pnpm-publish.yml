@@ -55,47 +55,9 @@ jobs:
 
       - name: Update dependencies
         if: ${{ inputs.dep-map != '{}' }}
-        run: |
-          node -e "
-            const depsMap = JSON.parse(process.env.DEP_MAP);
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const pkgDeps = depsMap[pkg.name];
-            if (!pkgDeps) {
-              console.log('No matching dependencies for this package.');
-              process.exit(0);
-            }
-            const sections = [
-              'dependencies',
-              'devDependencies',
-              'peerDependencies',
-              'optionalDependencies'
-            ];
-
-            let changed = false;
-            for (const [dep, version] of Object.entries(pkgDeps)) {
-              const sectionWithDep = sections.find(
-                section => pkg[section] && Object.hasOwn(pkg[section], dep)
-              );
-
-              if (!sectionWithDep) {
-                console.log(`Skipping ${dep}; not present in package.json.`);
-                continue;
-              }
-
-              pkg[sectionWithDep][dep] = version;
-              changed = true;
-            }
-
-            if (changed) {
-              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-            }
-            else {
-              console.log('No dependency updates were applied.');
-            }
-          "
-        env:
-          DEP_MAP: ${{ inputs.dep-map }}
+        uses: arcmantle/github-actions/replace-deps@main
+        with:
+          dep-map: ${{ inputs.dep-map }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
