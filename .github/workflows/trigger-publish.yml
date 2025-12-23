@@ -29,24 +29,28 @@ jobs:
       matrix:
         include: ${{ fromJson(inputs.matrix) }}
     steps:
-      - name: Create Gist with dep-map
-        id: create-gist
+      - name: Store dep-map as artifact
+        id: store-dep-map
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.sync-token }}
           script: |
+            const fs = require('fs');
             const depMap = JSON.parse(`${{ inputs.dep-map }}`);
-            const gist = await github.rest.gists.create({
-              description: `Dep map for ${{ matrix.targetRepo }} - ${new Date().toISOString()}`,
-              public: false,
-              files: {
-                'dep-map.json': {
-                  content: JSON.stringify(depMap)
-                }
-              }
-            });
-            console.log(`📝 Created gist ${gist.data.id} for ${{ matrix.targetRepo }}`);
-            return gist.data.id;
+            const timestamp = Date.now();
+            const filename = `dep-map-${timestamp}.json`;
+
+            fs.writeFileSync(filename, JSON.stringify(depMap, null, 2));
+            console.log(`📝 Created dep-map file: ${filename}`);
+
+            return { filename, timestamp };
+
+      - name: Upload dep-map artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dep-map-${{ fromJson(steps.store-dep-map.outputs.result).timestamp }}
+          path: dep-map-${{ fromJson(steps.store-dep-map.outputs.result).timestamp }}.json
+          retention-days: 1
 
       - name: Trigger target repo publish
         uses: actions/github-script@v7
@@ -54,7 +58,7 @@ jobs:
           github-token: ${{ secrets.sync-token }}
           script: |
             const [owner, repo] = '${{ matrix.targetRepo }}'.split('/');
-            const gistId = '${{ steps.create-gist.outputs.result }}';
+            const { filename, timestamp } = ${{ steps.store-dep-map.outputs.result }};
 
             try {
               await github.rest.actions.createWorkflowDispatch({
@@ -64,10 +68,12 @@ jobs:
                 ref: 'main',
                 inputs: {
                   'triggered-by': 'subtree-sync',
-                  'dep-map-gist-id': gistId,
+                  'dep-map-artifact': `dep-map-${timestamp}`,
+                  'source-repo': context.repo.owner + '/' + context.repo.repo,
+                  'source-run-id': context.runId.toString(),
                 }
               });
-              console.log(`✅ Successfully triggered publish workflow for ${owner}/${repo} with gist ${gistId}`);
+              console.log(`✅ Successfully triggered publish workflow for ${owner}/${repo}`);
             } catch (error) {
               console.error(`❌ Failed to trigger publish workflow for ${owner}/${repo}:`, error.message);
               throw error;
