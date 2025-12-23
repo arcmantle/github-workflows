@@ -29,13 +29,32 @@ jobs:
       matrix:
         include: ${{ fromJson(inputs.matrix) }}
     steps:
+      - name: Create Gist with dep-map
+        id: create-gist
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.sync-token }}
+          script: |
+            const depMap = JSON.parse(`${{ inputs.dep-map }}`);
+            const gist = await github.rest.gists.create({
+              description: `Dep map for ${{ matrix.targetRepo }} - ${new Date().toISOString()}`,
+              public: false,
+              files: {
+                'dep-map.json': {
+                  content: JSON.stringify(depMap)
+                }
+              }
+            });
+            console.log(`📝 Created gist ${gist.data.id} for ${{ matrix.targetRepo }}`);
+            return gist.data.id;
+
       - name: Trigger target repo publish
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.sync-token }}
           script: |
             const [owner, repo] = '${{ matrix.targetRepo }}'.split('/');
-            const depMap = JSON.parse(`${{ inputs.dep-map }}`);
+            const gistId = '${{ steps.create-gist.outputs.result }}';
 
             try {
               await github.rest.actions.createWorkflowDispatch({
@@ -45,10 +64,10 @@ jobs:
                 ref: 'main',
                 inputs: {
                   'triggered-by': 'subtree-sync',
-                  'dep-map': JSON.stringify(depMap),
+                  'dep-map-gist-id': gistId,
                 }
               });
-              console.log(`✅ Successfully triggered publish workflow for ${owner}/${repo}`);
+              console.log(`✅ Successfully triggered publish workflow for ${owner}/${repo} with gist ${gistId}`);
             } catch (error) {
               console.error(`❌ Failed to trigger publish workflow for ${owner}/${repo}:`, error.message);
               throw error;

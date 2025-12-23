@@ -8,11 +8,11 @@ on:
         required: false
         type: string
         default: "manual"
-      dep-map:
-        description: "JSON map of dependencies to update"
+      dep-map-gist-id:
+        description: "Gist ID containing the dependency map JSON"
         required: false
         type: string
-        default: "{}"
+        default: ""
       pre-build-script:
         description: "Custom script to run before build"
         required: false
@@ -53,11 +53,26 @@ jobs:
           node-version: ${{ inputs.node-version }}
           registry-url: https://registry.npmjs.org/
 
+      - name: Fetch dep-map from Gist
+        if: ${{ inputs.dep-map-gist-id != '' }}
+        id: fetch-dep-map
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const gist = await github.rest.gists.get({
+              gist_id: '${{ inputs.dep-map-gist-id }}'
+            });
+            const depMap = JSON.parse(gist.data.files['dep-map.json'].content);
+            console.log('📥 Fetched dep-map from gist:', depMap);
+            core.setOutput('dep-map', JSON.stringify(depMap));
+            return depMap;
+
       - name: Update dependencies
-        if: ${{ inputs.dep-map != '{}' }}
+        if: ${{ inputs.dep-map-gist-id != '' }}
         uses: arcmantle/github-actions/replace-deps@main
         with:
-          dep-map: ${{ inputs.dep-map }}
+          dep-map: ${{ steps.fetch-dep-map.outputs.dep-map }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
