@@ -96,8 +96,8 @@ jobs:
             fs.writeFileSync('artifact.zip', Buffer.from(download.data));
             await exec.exec('unzip', ['-o', 'artifact.zip']);
 
-            // Read the dep-map
-            const depMap = JSON.parse(fs.readFileSync('dep-map-' + '${{ inputs.dep-map-artifact }}'.split('-').pop() + '.json', 'utf8'));
+            // Read the dep-map (file is always named dep-map.json inside the artifact)
+            const depMap = JSON.parse(fs.readFileSync('dep-map.json', 'utf8'));
             console.log('📥 Downloaded dep-map from artifact:', depMap);
 
             // Output as JSON string
