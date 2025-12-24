@@ -127,34 +127,19 @@ jobs:
       - name: Build project.
         run: pnpm build
 
-      - name: increment version
-        id: package-info
+      - name: Calculate version with Prospector
+        id: version
+        uses: arcmantle/prospector@main
+        with:
+          dir: '.'
+
+      - name: Set package version
         run: |
+          echo "✅ Setting package version to ${{ steps.version.outputs.version }}"
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
           PACKAGE_NAME=$(node -p "require('./package.json').name")
-
-          echo "setting version to 9.9.9 to avoid conflicts"
-          npm version 9.9.9 --no-git-tag-version
-
-          # Check if package exists on npm
-          echo "🔍 Checking if package exists on npm..."
-          if CURRENT_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null); then
-            echo "📦 Package: $PACKAGE_NAME"
-            echo "🏷️  Current published version: $CURRENT_VERSION"
-            echo "✅ Package exists, will increment version"
-
-            echo "Setting version to ${CURRENT_VERSION} prior to incrementing..."
-            npm version "${CURRENT_VERSION}" --no-git-tag-version
-
-            echo "🚀 Existing package - incrementing version with: ${{ inputs.version-increment }}"
-            NEW_VERSION=$(npm version ${{ inputs.version-increment }} --no-git-tag-version)
-            echo "✅ New version: ${NEW_VERSION}"
-          else
-            echo "📦 Package: $PACKAGE_NAME (new package)"
-            echo "🏷️  Will start from version: 1.0.0"
-            echo "✅ New package, will be set to 1.0.0"
-            npm version 1.0.0 --no-git-tag-version
-            echo "✅ First release version: 1.0.0"
-          fi
+          echo "📦 Package $PACKAGE_NAME ready to publish at version ${{ steps.version.outputs.version }}"
 
       - name: Publish to NPM
         run: pnpm publish --access ${{ inputs.access }} --no-git-checks
