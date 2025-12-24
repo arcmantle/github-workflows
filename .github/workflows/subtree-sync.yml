@@ -49,6 +49,18 @@ jobs:
         id: deps
       - run: echo "${{ steps.deps.outputs.dep-map }}"
 
+      - name: Store dep-map as artifact
+        run: |
+          echo '${{ steps.deps.outputs.dep-map }}' > dep-map.json
+          echo "📝 Created dep-map artifact"
+
+      - name: Upload dep-map artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dep-map-${{ github.run_id }}
+          path: dep-map.json
+          retention-days: 1
+
   push-subtree:
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
@@ -64,6 +76,5 @@ jobs:
     uses: arcmantle/github-workflows/.github/workflows/trigger-publish.yml@main
     with:
       matrix: ${{ needs.detect-changes.outputs.matrix }}
-      dep-map: ${{ needs.generate-dep-map.outputs.dep-map }}
     secrets:
       sync-token: ${{ secrets.sync-token }}

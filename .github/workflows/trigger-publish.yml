@@ -13,10 +13,6 @@ on:
           ]
         required: true
         type: string
-      dep-map:
-        description: 'JSON string containing the dependency map'
-        required: true
-        type: string
     secrets:
       sync-token:
         description: 'GitHub token with permissions to trigger workflows in target repositories'
@@ -29,36 +25,12 @@ jobs:
       matrix:
         include: ${{ fromJson(inputs.matrix) }}
     steps:
-      - name: Store dep-map as artifact
-        id: store-dep-map
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.sync-token }}
-          script: |
-            const fs = require('fs');
-            const depMap = JSON.parse(`${{ inputs.dep-map }}`);
-            const timestamp = Date.now();
-            const filename = `dep-map-${timestamp}.json`;
-
-            fs.writeFileSync(filename, JSON.stringify(depMap, null, 2));
-            console.log(`📝 Created dep-map file: ${filename}`);
-
-            return { filename, timestamp };
-
-      - name: Upload dep-map artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dep-map-${{ fromJson(steps.store-dep-map.outputs.result).timestamp }}
-          path: dep-map-${{ fromJson(steps.store-dep-map.outputs.result).timestamp }}.json
-          retention-days: 1
-
       - name: Trigger target repo publish
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.sync-token }}
           script: |
             const [owner, repo] = '${{ matrix.targetRepo }}'.split('/');
-            const { filename, timestamp } = ${{ steps.store-dep-map.outputs.result }};
 
             try {
               await github.rest.actions.createWorkflowDispatch({
@@ -68,7 +40,7 @@ jobs:
                 ref: 'main',
                 inputs: {
                   'triggered-by': 'subtree-sync',
-                  'dep-map-artifact': `dep-map-${timestamp}`,
+                  'dep-map-artifact': `dep-map-${{ github.run_id }}`,
                   'source-repo': context.repo.owner + '/' + context.repo.repo,
                   'source-run-id': context.runId.toString(),
                 }
