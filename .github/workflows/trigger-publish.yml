@@ -50,3 +50,51 @@ jobs:
               console.error(`❌ Failed to trigger publish workflow for ${owner}/${repo}:`, error.message);
               throw error;
             }
+
+      - name: Check for typedoc workflow and trigger if exists
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.sync-token }}
+          script: |
+            const [owner, repo] = '${{ matrix.targetRepo }}'.split('/');
+
+            // Check if typedoc-deploy.yml exists
+            let hasTypedoc = false;
+            try {
+              await github.rest.repos.getContent({
+                owner,
+                repo,
+                path: '.github/workflows/typedoc.yml'
+              });
+              hasTypedoc = true;
+              console.log(`✅ ${owner}/${repo} has typedoc.yml`);
+            } catch (error) {
+              if (error.status === 404) {
+                console.log(`ℹ️  ${owner}/${repo} does not have typedoc.yml - skipping`);
+                return;
+              } else {
+                throw error;
+              }
+            }
+
+            // Trigger if it exists
+            if (hasTypedoc) {
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner,
+                  repo,
+                  workflow_id: 'typedoc.yml',
+                  ref: 'main',
+                  inputs: {
+                    'triggered-by': 'subtree-sync',
+                    'dep-map-artifact': `dep-map-${{ github.run_id }}`,
+                    'source-repo': context.repo.owner + '/' + context.repo.repo,
+                    'source-run-id': context.runId.toString(),
+                  }
+                });
+                console.log(`📚 Successfully triggered typedoc deploy for ${owner}/${repo}`);
+              } catch (error) {
+                console.error(`❌ Failed to trigger typedoc deploy for ${owner}/${repo}:`, error.message);
+                throw error;
+              }
+            }
